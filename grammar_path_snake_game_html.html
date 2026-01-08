@@ -1,0 +1,1068 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Grammar Path – Snake Board (A1)</title>
+  <style>
+    :root{
+      --bg1:#fff7d6;
+      --bg2:#d9f7ff;
+      --ink:#2b2b2b;
+      --card:#ffffffcc;
+      --shadow: 0 10px 25px rgba(0,0,0,.12);
+      --radius: 18px;
+      --grid-gap: 8px;
+
+      --p1:#ff4d6d;
+      --p2:#4d9cff;
+      --p3:#39c36b;
+      --p4:#ff9f1c;
+
+      --cell:#ffffff;
+      --cell2:#f2fbff;
+      --cell3:#fff1f5;
+
+      --special-skip:#ffd166;
+      --special-back:#ef476f;
+      --special-repeat:#06d6a0;
+      --special-start:#8ecae6;
+      --special-finish:#8338ec;
+    }
+
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Noto Sans", "Helvetica Neue", sans-serif;
+      color:var(--ink);
+      background:
+        radial-gradient(circle at 10% 10%, var(--bg2), transparent 40%),
+        radial-gradient(circle at 90% 10%, #ffe1f0, transparent 45%),
+        radial-gradient(circle at 50% 100%, #e5ffe1, transparent 50%),
+        linear-gradient(135deg, var(--bg1), #fff);
+      min-height:100vh;
+      padding:18px;
+    }
+
+    .wrap{
+      max-width: 1180px;
+      margin: 0 auto;
+      display:grid;
+      grid-template-columns: 1.25fr .75fr;
+      gap: 18px;
+      align-items:start;
+    }
+
+    @media (max-width: 980px){
+      .wrap{grid-template-columns:1fr;}
+    }
+
+    .header{
+      grid-column: 1 / -1;
+      display:flex;
+      align-items:center;
+      gap:14px;
+      padding:14px 16px;
+      background: var(--card);
+      border: 2px solid #ffffff;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      position:relative;
+      overflow:hidden;
+    }
+    .header:before{
+      content:"";
+      position:absolute;
+      inset:-60px -80px auto auto;
+      width:220px;
+      height:220px;
+      background: radial-gradient(circle at 30% 30%, #fff, #ffd6a5);
+      transform: rotate(18deg);
+      opacity:.75;
+      border-radius: 40px;
+    }
+
+    .title{
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+      z-index:1;
+    }
+    h1{font-size:20px;margin:0;}
+    .sub{font-size:13px;opacity:.9;line-height:1.25}
+
+    /* Cute mascot (inspired by warm retro cartoon vibe; original mascot, not a copyrighted character) */
+    .mascot{
+      width: 72px;
+      height: 72px;
+      border-radius: 22px;
+      background: linear-gradient(180deg, #ffe6a7, #ffd6a5);
+      box-shadow: 0 10px 18px rgba(0,0,0,.12);
+      position:relative;
+      flex: 0 0 auto;
+      z-index:1;
+    }
+    .ear{position:absolute;width:26px;height:34px;border-radius:18px;background:linear-gradient(180deg,#cda17b,#b4875d);top:8px;}
+    .ear.left{left:-10px;transform:rotate(-10deg)}
+    .ear.right{right:-10px;transform:rotate(10deg)}
+    .face{
+      position:absolute; inset:12px 14px 14px 14px;
+      background: #fff;
+      border-radius: 18px;
+      box-shadow: inset 0 0 0 2px rgba(0,0,0,.06);
+    }
+    .eye{position:absolute; top:14px; width:10px;height:10px;border-radius:50%; background:#2b2b2b;}
+    .eye.left{left:14px}
+    .eye.right{right:14px}
+    .shine{position:absolute; width:4px;height:4px;border-radius:50%; background:#fff; top:16px; left:16px;}
+    .nose{position:absolute; left:50%; top:28px; width:10px;height:8px; transform:translateX(-50%);
+      border-radius: 50%; background:#ff7aa2;
+    }
+    .smile{position:absolute; left:50%; top:38px; width:22px;height:12px; transform:translateX(-50%);
+      border:2px solid transparent; border-bottom-color:#2b2b2b;
+      border-radius: 0 0 18px 18px;
+    }
+
+    .boardCard, .sideCard{
+      background: var(--card);
+      border: 2px solid #ffffff;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+
+    .boardTop{
+      padding: 14px 16px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 10px;
+      border-bottom: 1px dashed rgba(0,0,0,.1);
+    }
+
+    .legend{
+      display:flex;
+      flex-wrap:wrap;
+      gap: 8px;
+      font-size:12px;
+      align-items:center;
+    }
+
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding:6px 10px;
+      border-radius: 999px;
+      background:#fff;
+      border:1px solid rgba(0,0,0,.08);
+    }
+    .dot{width:10px;height:10px;border-radius:50%}
+
+    .gridWrap{padding: 14px 16px 18px;}
+
+    .board{
+      display:grid;
+      grid-template-columns: repeat(6, minmax(46px, 1fr));
+      gap: var(--grid-gap);
+      user-select:none;
+    }
+
+    .cell{
+      position:relative;
+      min-height: 58px;
+      border-radius: 14px;
+      background: linear-gradient(180deg, var(--cell), #f7f7ff);
+      border: 2px solid rgba(255,255,255,.9);
+      box-shadow: 0 6px 12px rgba(0,0,0,.07);
+      display:flex;
+      align-items:flex-start;
+      justify-content:flex-start;
+      padding: 8px;
+      overflow:hidden;
+    }
+    .cell:nth-child(odd){background: linear-gradient(180deg, var(--cell2), #ffffff);}
+    .cell:nth-child(3n){background: linear-gradient(180deg, var(--cell3), #ffffff);}
+
+    .cellNum{
+      font-weight: 800;
+      font-size: 14px;
+      opacity:.85;
+      background:#ffffffcc;
+      padding: 4px 7px;
+      border-radius: 10px;
+      border: 1px solid rgba(0,0,0,.06);
+    }
+
+    .cellLabel{
+      position:absolute;
+      bottom:6px;
+      left:6px;
+      right:6px;
+      font-size: 11px;
+      font-weight: 700;
+      opacity: .95;
+      display:flex;
+      justify-content:space-between;
+      gap:8px;
+      align-items:center;
+    }
+
+    .tag{
+      padding: 4px 8px;
+      border-radius: 999px;
+      background:#fff;
+      border: 1px solid rgba(0,0,0,.08);
+      display:inline-flex;
+      gap:6px;
+      align-items:center;
+      white-space:nowrap;
+    }
+
+    .tag b{font-size:11px}
+
+    .special{
+      border-color: rgba(0,0,0,.08);
+    }
+
+    .special.start{background: linear-gradient(180deg, #dff3ff, #ffffff);}
+    .special.finish{background: linear-gradient(180deg, #efe3ff, #ffffff);}
+    .special.skip{background: linear-gradient(180deg, #fff3c4, #ffffff);}
+    .special.back{background: linear-gradient(180deg, #ffd3dc, #ffffff);}
+    .special.repeat{background: linear-gradient(180deg, #cdfde9, #ffffff);}
+
+    .tokenStack{
+      position:absolute;
+      top: 10px;
+      right: 10px;
+      display:flex;
+      flex-wrap:wrap;
+      gap: 6px;
+      justify-content:flex-end;
+      max-width: 56px;
+    }
+    .token{
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      box-shadow: 0 4px 10px rgba(0,0,0,.18);
+      border: 2px solid rgba(255,255,255,.9);
+      background:#fff;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:16px;
+      line-height:1;
+      outline: 3px solid transparent;
+      outline-offset: -3px;
+    }
+
+    .sideCard{padding: 14px 16px 18px;}
+
+    .sectionTitle{
+      margin: 0 0 10px;
+      font-size: 14px;
+      font-weight: 900;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+    }
+
+    .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center}
+
+    button{
+      appearance:none;
+      border: none;
+      border-radius: 16px;
+      padding: 12px 14px;
+      font-weight: 900;
+      cursor:pointer;
+      background: #ffffff;
+      box-shadow: 0 10px 18px rgba(0,0,0,.10);
+      border: 1px solid rgba(0,0,0,.08);
+      color: var(--ink);
+      transition: transform .06s ease, box-shadow .06s ease;
+    }
+    button:hover{transform: translateY(-1px)}
+    button:active{transform: translateY(1px); box-shadow: 0 6px 12px rgba(0,0,0,.10)}
+    button.primary{
+      background: linear-gradient(180deg, #ffffff, #f3fbff);
+      border-color: rgba(0,0,0,.08);
+    }
+    button.danger{
+      background: linear-gradient(180deg, #fff, #fff1f5);
+    }
+    button:disabled{opacity:.55; cursor:not-allowed; transform:none}
+
+    .box{
+      padding: 12px;
+      background:#fff;
+      border: 1px solid rgba(0,0,0,.08);
+      border-radius: 16px;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.6);
+    }
+
+    .small{
+      font-size: 12px;
+      opacity:.92;
+      line-height: 1.35;
+    }
+
+    .players{
+      display:grid;
+      gap: 10px;
+      margin-top:10px;
+    }
+
+    .playerCard{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 10px;
+      padding: 10px 10px;
+      border-radius: 16px;
+      background: #fff;
+      border: 1px solid rgba(0,0,0,.08);
+    }
+    .pLeft{display:flex;align-items:center;gap:10px}
+    .pBadge{width:14px;height:14px;border-radius:50%; box-shadow: 0 6px 12px rgba(0,0,0,.16)}
+    .pName{font-weight: 900; font-size: 13px}
+    .pMeta{font-size:12px; opacity:.85}
+
+    .turn{
+      padding: 10px 12px;
+      border-radius: 16px;
+      background: linear-gradient(180deg, #fff, #f7fbff);
+      border: 1px solid rgba(0,0,0,.08);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 10px;
+      margin: 10px 0;
+    }
+
+    .dice{
+      width: 44px;
+      height: 44px;
+      border-radius: 14px;
+      background: #fff;
+      border: 1px solid rgba(0,0,0,.10);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size: 20px;
+      font-weight: 1000;
+      box-shadow: 0 10px 18px rgba(0,0,0,.10);
+    }
+
+    /* Modal */
+    .modalBackdrop{
+      position:fixed;
+      inset:0;
+      background: rgba(0,0,0,.45);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding: 18px;
+      z-index: 999;
+    }
+    .modal{
+      width: min(680px, 100%);
+      background: #fff;
+      border-radius: 22px;
+      box-shadow: 0 22px 55px rgba(0,0,0,.22);
+      overflow:hidden;
+      border: 2px solid rgba(255,255,255,.9);
+    }
+    .modalTop{
+      padding: 14px 16px;
+      background: linear-gradient(135deg, #e8f8ff, #fff7de);
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap: 10px;
+    }
+    .modalTop h2{margin:0;font-size:16px}
+    .modalTop .hint{font-size:12px; opacity:.85; margin-top:3px}
+    .modalBody{padding: 14px 16px 16px;}
+
+    .qText{
+      font-weight: 900;
+      font-size: 15px;
+      margin: 0 0 10px;
+      line-height:1.3;
+    }
+
+    .answers{
+      display:grid;
+      gap: 10px;
+      grid-template-columns: 1fr 1fr;
+    }
+    @media (max-width: 520px){
+      .answers{grid-template-columns:1fr;}
+    }
+    .ansBtn{
+      text-align:left;
+      border-radius: 16px;
+      padding: 12px 12px;
+      background: #fff;
+      border: 1px solid rgba(0,0,0,.10);
+      box-shadow: 0 10px 16px rgba(0,0,0,.08);
+      font-weight: 900;
+      cursor:pointer;
+    }
+    .ansBtn:hover{transform: translateY(-1px)}
+
+    .result{
+      margin-top: 12px;
+      padding: 10px 12px;
+      border-radius: 16px;
+      border: 1px solid rgba(0,0,0,.08);
+      background: #f7fbff;
+      display:none;
+      font-weight: 900;
+    }
+    .result.good{background:#eafff3}
+    .result.bad{background:#fff1f5}
+
+    .modalBottom{
+      padding: 12px 16px 16px;
+      display:flex;
+      justify-content:flex-end;
+      gap: 10px;
+      border-top: 1px dashed rgba(0,0,0,.10);
+      background: #fff;
+    }
+
+    .footerNote{
+      font-size: 12px;
+      opacity: .85;
+      margin-top: 10px;
+      line-height:1.35;
+    }
+
+    .sparkle{
+      position:absolute;
+      inset:auto 10px 10px auto;
+      width: 56px;
+      height: 56px;
+      border-radius: 18px;
+      background: radial-gradient(circle at 30% 30%, #fff, #ffd6a5);
+      opacity:.6;
+      filter: blur(.2px);
+      transform: rotate(8deg);
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+
+    <div class="header">
+      <div class="mascot" aria-hidden="true">
+        <div class="ear left"></div>
+        <div class="ear right"></div>
+        <div class="face">
+          <div class="eye left"><div class="shine"></div></div>
+          <div class="eye right"><div class="shine"></div></div>
+          <div class="nose"></div>
+          <div class="smile"></div>
+        </div>
+      </div>
+      <div class="title">
+        <h1>Grammar Path 🐍 — настольная «змейка» (A1)</h1>
+        <div class="sub">Темы: <b>a/an</b> • <b>this/that/these/those</b> • <b>possessives</b> • <b>possessive pronouns</b>. Игроков: 1–4. Правильно → двигаешься вперёд, затем ход переходит следующему игроку (кроме клетки «Повтор хода»). Неправильно → пропуск хода.</div>
+      </div>
+    </div>
+
+    <div class="boardCard">
+      <div class="boardTop">
+        <div class="legend">
+          <span class="pill"><span class="dot" style="background:var(--special-start)"></span> START</span>
+          <span class="pill"><span class="dot" style="background:var(--special-finish)"></span> FINISH</span>
+          <span class="pill"><span class="dot" style="background:var(--special-skip)"></span> Пропуск хода</span>
+          <span class="pill"><span class="dot" style="background:var(--special-back)"></span> Назад</span>
+          <span class="pill"><span class="dot" style="background:var(--special-repeat)"></span> Повтор хода</span>
+        </div>
+        <div class="pill" title="Вопросов в игре">
+          🧠 Вопросов: <b id="qCount">20</b>
+        </div>
+      </div>
+      <div class="gridWrap">
+        <div id="board" class="board" aria-label="Игровое поле"></div>
+        <div class="footerNote">Подсказка для учителя: вопросы не повторяются, пока не закончатся. После 20 вопросов они перемешиваются заново.</div>
+      </div>
+    </div>
+
+    <div class="sideCard">
+      <div class="sectionTitle">Настройки игры <span class="pill">🎁 приз: <b>Золотая звёздочка</b></span></div>
+
+      <div class="box small">
+        <b>Как играть:</b><br>
+        1) Выберите количество игроков и нажмите <b>Start</b>.<br>
+        2) Нажмите <b>Roll the Dice</b> → появится вопрос (4 варианта).<br>
+        3) Верно: игрок двигается на число кубика, затем ход переходит следующему игроку (кроме клетки <b>«Повтор хода»</b>).<br>
+        4) Неверно: игрок <b>остаётся</b> и <b>пропускает следующий ход</b>.<br>
+        5) Спец-клетки могут дать: пропуск, назад или повтор хода.<br>
+        Победитель: первый, кто дошёл до <b>FINISH</b>.
+      </div>
+
+      <div class="row" style="margin-top:12px">
+        <label class="pill">Игроков:
+          <select id="playerCount" style="border:none; font-weight:900; outline:none; background:transparent;">
+            <option value="1">1</option>
+            <option value="2" selected>2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+          </select>
+        </label>
+        <button class="primary" id="startBtn">Start</button>
+        <button class="danger" id="resetBtn">Reset</button>
+      </div>
+
+      <div class="turn" aria-live="polite">
+        <div>
+          <div style="font-weight:1000">Ход: <span id="turnName">—</span></div>
+          <div class="small">Статус: <span id="turnStatus">настройте игру и нажмите Start</span></div>
+        </div>
+        <div class="dice" id="diceFace" title="Кубик">—</div>
+      </div>
+
+      <div class="row">
+        <button class="primary" id="rollBtn" disabled>🎲 Roll the Dice</button>
+      </div>
+
+      <div style="margin-top:12px" class="sectionTitle">Игроки</div>
+      <div id="players" class="players"></div>
+
+      <div class="footerNote">Оформление сделано в «тёплом мультяшном» стиле с дружелюбным ушастым маскотом (оригинальный персонаж, без использования конкретных охраняемых образов).</div>
+    </div>
+  </div>
+
+  <!-- Question / Winner Modal -->
+  <div id="modalBackdrop" class="modalBackdrop" role="dialog" aria-modal="true">
+    <div class="modal">
+      <div class="modalTop">
+        <div>
+          <h2 id="modalTitle">Вопрос</h2>
+          <div class="hint" id="modalHint">Выберите один ответ</div>
+        </div>
+        <button id="closeModalBtn" aria-label="Закрыть">✖</button>
+      </div>
+      <div class="modalBody">
+        <p class="qText" id="qText">—</p>
+        <div class="answers" id="answers"></div>
+        <div class="result" id="resultBox"></div>
+      </div>
+      <div class="modalBottom">
+        <button id="continueBtn" class="primary" disabled>Продолжить</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ---------- Data: Board ----------
+    // Snake path of 30 cells (6 columns x 5 rows). Cell 1 is START. Cell 30 is FINISH.
+    // Special cells:
+    //  - skip: player skips next turn
+    //  - back: move back N cells
+    //  - repeat: grants immediate extra roll (even if answer was wrong, but landing here happens only after move)
+
+    const BOARD_SIZE = 30;
+
+    /**
+     * Special cells map:
+     * You can edit these to tune difficulty.
+     */
+    const specials = new Map([
+      [1,  { type: 'start',  label: 'START' }],
+      [30, { type: 'finish', label: 'FINISH' }],
+
+      [5,  { type: 'repeat', label: 'Повтор хода' }],
+      [9,  { type: 'skip',   label: 'Пропуск хода' }],
+      [12, { type: 'back',   label: 'Назад 2', value: 2 }],
+
+      [15, { type: 'repeat', label: 'Повтор хода' }],
+      [18, { type: 'skip',   label: 'Пропуск хода' }],
+      [21, { type: 'back',   label: 'Назад 3', value: 3 }],
+
+      [24, { type: 'repeat', label: 'Повтор хода' }],
+      [26, { type: 'skip',   label: 'Пропуск хода' }],
+      [28, { type: 'back',   label: 'Назад 2', value: 2 }],
+    ]);
+
+    // ---------- Data: 20 Questions (A1) ----------
+    // Each question has: text, options[4], correctIndex, topic
+    // Notes: Keep language kid-friendly, short, clear.
+
+    const QUESTIONS = [
+      // Articles a/an
+      { topic:'a/an', text:'Choose: ___ apple', options:['a','an','the','—'], correct:1 },
+      { topic:'a/an', text:'Choose: ___ dog', options:['an','a','the','—'], correct:1 },
+      { topic:'a/an', text:'Choose: ___ umbrella', options:['a','an','the','—'], correct:1 },
+      { topic:'a/an', text:'Choose: ___ book', options:['an','a','the','—'], correct:1 },
+      { topic:'a/an', text:'Choose: ___ orange', options:['a','an','the','—'], correct:1 },
+
+      // this/that/these/those (near/far, single/plural)
+      { topic:'this/that', text:'Near + one: “___ is my pencil.”', options:['These','Those','This','That'], correct:2 },
+      { topic:'this/that', text:'Far + one: “___ is a tall tree.”', options:['This','That','These','Those'], correct:1 },
+      { topic:'these/those', text:'Near + many: “___ are my shoes.”', options:['These','Those','This','That'], correct:0 },
+      { topic:'these/those', text:'Far + many: “___ are birds.”', options:['This','That','These','Those'], correct:3 },
+      { topic:'this/that', text:'Near + one: “Look at ___ cat!”', options:['those','these','this','that'], correct:2 },
+
+      // Possessive adjectives (my/your/his/her/its/our/their)
+      { topic:'possessives', text:'Tom has a bike. It is ___ bike.', options:['my','his','her','their'], correct:1 },
+      { topic:'possessives', text:'I have a hat. It is ___ hat.', options:['my','your','his','her'], correct:0 },
+      { topic:'possessives', text:'Anna has a doll. It is ___ doll.', options:['his','her','your','our'], correct:1 },
+      { topic:'possessives', text:'We have a classroom. It is ___ classroom.', options:['our','their','my','its'], correct:0 },
+      { topic:'possessives', text:'The children have toys. These are ___ toys.', options:['our','his','their','her'], correct:2 },
+
+      // Possessive pronouns (mine/yours/his/hers/ours/theirs)
+      { topic:'possessive pronouns', text:'This is my pen. The pen is ___.', options:['my','mine','me','I'], correct:1 },
+      { topic:'possessive pronouns', text:'This is her bag. The bag is ___.', options:['hers','her','she','him'], correct:0 },
+      { topic:'possessive pronouns', text:'This is their ball. The ball is ___.', options:['their','theirs','them','they'], correct:1 },
+      { topic:'possessive pronouns', text:'This is your book. The book is ___.', options:['your','yours','you','yous'], correct:1 },
+      { topic:'possessive pronouns', text:'This is our house. The house is ___.', options:['ours','our','us','we'], correct:0 },
+    ];
+
+    // ---------- Helpers ----------
+    const $ = (id) => document.getElementById(id);
+
+    function shuffle(arr){
+      for(let i=arr.length-1;i>0;i--){
+        const j = Math.floor(Math.random()*(i+1));
+        [arr[i],arr[j]] = [arr[j],arr[i]];
+      }
+      return arr;
+    }
+
+    // Create a rotating queue of question indices
+    let questionQueue = [];
+    function resetQuestionQueue(){
+      questionQueue = shuffle([...Array(QUESTIONS.length)].map((_,i)=>i));
+      $('qCount').textContent = QUESTIONS.length;
+    }
+    function nextQuestionIndex(){
+      if(questionQueue.length === 0) resetQuestionQueue();
+      return questionQueue.shift();
+    }
+
+    // ---------- Game State ----------
+    const COLORS = ['var(--p1)','var(--p2)','var(--p3)','var(--p4)'];
+    const ANIMALS = ['🐶','🐱','🐻','🐰'];
+    let players = [];
+    let current = 0;
+    let gameOn = false;
+    let pendingDice = 0;
+    let awaitingContinue = false;
+
+    function makePlayers(n){
+      players = [];
+      for(let i=0;i<n;i++){
+        players.push({
+          id:i,
+          name:`Игрок ${i+1}`,
+          color: COLORS[i],
+          animal: ANIMALS[i],
+          pos: 1,
+          skipNext: false,
+        });
+      }
+    }
+
+    // ---------- Board Render ----------
+    function snakeIndexToGridOrder(){
+      // 5 rows x 6 cols => 30 cells
+      // To make it a "snake", each odd row reverses.
+      const cols = 6;
+      const rows = 5;
+      const order = [];
+      let num = 1;
+      for(let r=0;r<rows;r++){
+        const row = [];
+        for(let c=0;c<cols;c++) row.push(num++);
+        if(r%2===1) row.reverse();
+        order.push(...row);
+      }
+      return order;
+    }
+
+    const GRID_ORDER = snakeIndexToGridOrder();
+
+    function specialClass(cell){
+      const sp = specials.get(cell);
+      if(!sp) return '';
+      return `special ${sp.type}`;
+    }
+
+    function specialTag(cell){
+      const sp = specials.get(cell);
+      if(!sp) return '';
+      let icon = '✨';
+      let bg = '#fff';
+      if(sp.type==='start'){icon='🚩'; bg='var(--special-start)';}
+      if(sp.type==='finish'){icon='🏁'; bg='var(--special-finish)';}
+      if(sp.type==='skip'){icon='⏸️'; bg='var(--special-skip)';}
+      if(sp.type==='back'){icon='↩️'; bg='var(--special-back)';}
+      if(sp.type==='repeat'){icon='🔁'; bg='var(--special-repeat)';}
+      return `<span class="tag" title="${sp.label}"><span class="dot" style="background:${bg}"></span><b>${icon} ${sp.label}</b></span>`;
+    }
+
+    function renderBoard(){
+      const board = $('board');
+      board.innerHTML = '';
+      for(const cellNum of GRID_ORDER){
+        const div = document.createElement('div');
+        div.className = `cell ${specialClass(cellNum)}`;
+        div.dataset.cell = String(cellNum);
+
+        const num = document.createElement('div');
+        num.className = 'cellNum';
+        num.textContent = String(cellNum);
+
+        const stack = document.createElement('div');
+        stack.className = 'tokenStack';
+
+        const label = document.createElement('div');
+        label.className = 'cellLabel';
+        label.innerHTML = `${specialTag(cellNum)}<span></span>`;
+
+        div.appendChild(num);
+        div.appendChild(stack);
+        div.appendChild(label);
+        board.appendChild(div);
+      }
+      updateTokens();
+    }
+
+    function updateTokens(){
+      // clear stacks
+      document.querySelectorAll('.tokenStack').forEach(s => s.innerHTML='');
+      // place tokens
+      for(const p of players){
+        const cell = document.querySelector(`.cell[data-cell="${p.pos}"] .tokenStack`);
+        if(cell){
+          const t = document.createElement('div');
+          t.className = 'token';
+          t.style.outlineColor = p.color;
+          t.title = `${p.name} ${p.animal}`;
+          t.textContent = p.animal;
+          cell.appendChild(t);
+        }
+      }
+    }
+
+    // ---------- Sidebar Render ----------
+    function renderPlayers(){
+      const list = $('players');
+      list.innerHTML = '';
+      for(const p of players){
+        const card = document.createElement('div');
+        card.className = 'playerCard';
+
+        const left = document.createElement('div');
+        left.className = 'pLeft';
+
+        const badge = document.createElement('div');
+        badge.className = 'pBadge';
+        badge.style.background = '#fff';
+        badge.style.outline = `3px solid ${p.color}`;
+        badge.style.outlineOffset = '-2px';
+        badge.style.display = 'flex';
+        badge.style.alignItems = 'center';
+        badge.style.justifyContent = 'center';
+        badge.style.fontSize = '14px';
+        badge.textContent = p.animal;
+
+        const name = document.createElement('div');
+        name.innerHTML = `<div class="pName">${p.name}</div><div class="pMeta">Клетка: <b>${p.pos}</b>${p.skipNext ? ' • <span style="color:#d00000;font-weight:1000">пропуск</span>' : ''}</div>`;
+
+        left.appendChild(badge);
+        left.appendChild(name);
+
+        const right = document.createElement('div');
+        right.innerHTML = `<span class="pill">${p.id===current ? '👉 ходит' : ' '}</span>`;
+
+        card.appendChild(left);
+        card.appendChild(right);
+        list.appendChild(card);
+      }
+    }
+
+    function setTurnUI(msg){
+      const p = players[current];
+      $('turnName').textContent = p ? p.name : '—';
+      $('turnStatus').textContent = msg;
+    }
+
+    function setDiceFace(v){
+      $('diceFace').textContent = v ? String(v) : '—';
+    }
+
+    // ---------- Modal ----------
+    function openModal(){
+      $('modalBackdrop').style.display = 'flex';
+    }
+    function closeModal(){
+      $('modalBackdrop').style.display = 'none';
+    }
+
+    function showQuestion(diceValue){
+      pendingDice = diceValue;
+      awaitingContinue = false;
+      $('continueBtn').disabled = true;
+      $('resultBox').style.display = 'none';
+      $('resultBox').className = 'result';
+
+      const qi = nextQuestionIndex();
+      const q = QUESTIONS[qi];
+
+      $('modalTitle').textContent = `Вопрос (${q.topic})`;
+      $('modalHint').textContent = `Кубик: ${diceValue}. Ответь верно — двинешься на ${diceValue}. Затем ход следующего игрока (кроме клетки «Повтор хода»).`;
+      $('qText').textContent = q.text;
+
+      const answers = $('answers');
+      answers.innerHTML = '';
+
+      // randomize option order but keep correct
+      const optionObjs = q.options.map((txt, idx) => ({ txt, idx }));
+      shuffle(optionObjs);
+
+      for(const opt of optionObjs){
+        const btn = document.createElement('button');
+        btn.className = 'ansBtn';
+        btn.innerHTML = `✅ <span style="font-weight:1000">${opt.txt}</span>`;
+        btn.onclick = () => {
+          if(awaitingContinue) return;
+          const isCorrect = opt.idx === q.correct;
+          handleAnswer(isCorrect, q.options[q.correct]);
+        };
+        answers.appendChild(btn);
+      }
+
+      openModal();
+    }
+
+    function handleAnswer(isCorrect, rightAnswer){
+      awaitingContinue = true;
+      const box = $('resultBox');
+      box.style.display = 'block';
+
+      if(isCorrect){
+        box.className = 'result good';
+        box.textContent = `🎉 Верно! Двигаемся на ${pendingDice}.`;
+        $('continueBtn').disabled = false;
+        $('continueBtn').onclick = () => {
+          closeModal();
+          applyMove(pendingDice);
+        };
+      } else {
+        box.className = 'result bad';
+        box.textContent = `🙈 Неверно. Правильный ответ: “${rightAnswer}”. Ты остаёшься на месте и пропускаешь следующий ход.`;
+        $('continueBtn').disabled = false;
+        $('continueBtn').onclick = () => {
+          closeModal();
+          applyWrong();
+        };
+      }
+    }
+
+    // ---------- Turn Logic ----------
+    function nextPlayer(){
+      current = (current + 1) % players.length;
+    }
+
+    function clampPos(pos){
+      if(pos < 1) return 1;
+      if(pos > BOARD_SIZE) return BOARD_SIZE;
+      return pos;
+    }
+
+    function checkFinish(p){
+      return p.pos >= BOARD_SIZE;
+    }
+
+    function prizeModal(winnerName){
+      $('modalTitle').textContent = '🏆 Победа!';
+      $('modalHint').textContent = 'Финиш достигнут!';
+      $('qText').textContent = `${winnerName} первым дошёл до FINISH и получает 🎁 приз: ЗОЛОТУЮ ЗВЁЗДОЧКУ ⭐!`;
+      $('answers').innerHTML = '';
+      const box = $('resultBox');
+      box.style.display = 'block';
+      box.className = 'result good';
+      box.textContent = 'Можно нажать Reset и сыграть ещё раз!';
+      $('continueBtn').disabled = false;
+      $('continueBtn').textContent = 'Закрыть';
+      $('continueBtn').onclick = () => closeModal();
+      openModal();
+    }
+
+    function applySpecial(p){
+      const sp = specials.get(p.pos);
+      if(!sp) return { extraTurn:false, note:'' };
+
+      if(sp.type === 'skip'){
+        p.skipNext = true;
+        return { extraTurn:false, note:'⏸️ Попал на клетку «Пропуск хода»! Следующий ход пропускаешь.' };
+      }
+      if(sp.type === 'back'){
+        const n = sp.value ?? 2;
+        p.pos = clampPos(p.pos - n);
+        return { extraTurn:false, note:`↩️ Назад на ${n}! Теперь ты на клетке ${p.pos}.` };
+      }
+      if(sp.type === 'repeat'){
+        return { extraTurn:true, note:'🔁 Повтор хода! Можно бросать кубик ещё раз.' };
+      }
+      return { extraTurn:false, note:'' };
+    }
+
+    function applyMove(steps){
+      if(!gameOn) return;
+      const p = players[current];
+
+      // move forward
+      p.pos = clampPos(p.pos + steps);
+
+      // check finish
+      if(checkFinish(p)){
+        updateTokens();
+        renderPlayers();
+        setTurnUI(`🏁 ${p.name} на финише!`);
+        setDiceFace('🏁');
+        gameOn = false;
+        $('rollBtn').disabled = true;
+        prizeModal(p.name);
+        return;
+      }
+
+      // apply special cell effects
+      const sp = applySpecial(p);
+
+      updateTokens();
+      renderPlayers();
+
+      // Decide turn continuation
+      if(sp.extraTurn){
+        setTurnUI(`${p.name}: повтор хода! ${sp.note || '🎲 Бросай ещё раз!'}`);
+        $('rollBtn').disabled = false;
+      } else {
+        // end turn (players go in order)
+        nextPlayer();
+        beginTurn();
+      }
+    }
+
+    function applyWrong(){
+      if(!gameOn) return;
+      const p = players[current];
+      p.skipNext = true; // as requested: wrong answer => skip next turn
+      updateTokens();
+      renderPlayers();
+
+      // end turn immediately
+      nextPlayer();
+      beginTurn();
+    }
+
+    function beginTurn(){
+      if(!gameOn) return;
+      const p = players[current];
+      setDiceFace('—');
+
+      if(p.skipNext){
+        p.skipNext = false;
+        setTurnUI(`${p.name} пропускает ход ⏸️`);
+        $('rollBtn').disabled = true;
+        // short pause then next
+        setTimeout(() => {
+          nextPlayer();
+          beginTurn();
+        }, 650);
+        renderPlayers();
+        return;
+      }
+
+      setTurnUI(`${p.name}, бросай кубик!`);
+      $('rollBtn').disabled = false;
+      renderPlayers();
+    }
+
+    // ---------- UI Actions ----------
+    function startGame(){
+      const n = parseInt($('playerCount').value, 10);
+      makePlayers(n);
+      current = 0;
+      gameOn = true;
+      resetQuestionQueue();
+
+      // Everyone starts at cell 1
+      for(const p of players){
+        p.pos = 1;
+        p.skipNext = false;
+      }
+
+      renderBoard();
+      renderPlayers();
+      setDiceFace('—');
+      $('rollBtn').disabled = false;
+      setTurnUI('Игра началась!');
+      beginTurn();
+    }
+
+    function resetGame(){
+      gameOn = false;
+      players = [];
+      current = 0;
+      pendingDice = 0;
+      resetQuestionQueue();
+      renderBoard();
+      renderPlayers();
+      setDiceFace('—');
+      $('rollBtn').disabled = true;
+      setTurnUI('настройте игру и нажмите Start');
+    }
+
+    function rollDice(){
+      if(!gameOn) return;
+      const p = players[current];
+      if(p.skipNext) return;
+
+      const dice = 1 + Math.floor(Math.random()*6);
+      setDiceFace(dice);
+      showQuestion(dice);
+    }
+
+    // Close modal controls
+    $('closeModalBtn').onclick = () => {
+      // Prevent closing in the middle of answering: keep it simple (kids)
+      if(!awaitingContinue) return;
+      closeModal();
+    };
+
+    $('modalBackdrop').addEventListener('click', (e) => {
+      if(e.target === $('modalBackdrop')){
+        // only allow if already answered
+        if(awaitingContinue) closeModal();
+      }
+    });
+
+    // Buttons
+    $('startBtn').onclick = startGame;
+    $('resetBtn').onclick = resetGame;
+    $('rollBtn').onclick = rollDice;
+
+    // Initial render
+    resetQuestionQueue();
+    renderBoard();
+    resetGame();
+
+    // Accessibility: ESC closes modal after answer
+    document.addEventListener('keydown', (e) => {
+      if(e.key === 'Escape' && $('modalBackdrop').style.display === 'flex' && awaitingContinue){
+        closeModal();
+      }
+    });
+
+  </script>
+</body>
+</html>
